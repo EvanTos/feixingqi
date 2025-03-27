@@ -3,189 +3,94 @@
 <head>
     <title>双人飞行棋</title>
     <style>
-        body {
-            background: linear-gradient(135deg, #e0b0ff, #6a1b9a);
-            margin: 0;
+        /* 新增棋盘居中样式 */
+        body {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;  /* 新增居中属性 */
+        }}
+ 
+        /* 修改棋盘容器定位 */
+        #board {{
+            margin: 20px auto;  /* 新增居中效果 */
+            transform: none;    /* 移除之前可能影响定位的属性 */
+        }}
+ 
+        /* 新增胜利提示样式 */
+        .win-alert {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: gold;
             padding: 20px;
-            height: 100vh;
-            font-family: Arial;
-        }
- 
-        #diceBox {
-            background: white;
-            padding: 15px;
             border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
- 
-        #board {
-            width: 900px;
-            height: 800px;
-            position: relative;
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-        }
- 
-        .cell {
-            width: 50px;
-            height: 50px;
-            border: 1px solid #fff;
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
- 
-        .player {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            top: 10px;
-            left: 10px;
-        }
- 
-        #male {
-            background: #2196F3;
-            box-shadow: 0 2px 5px rgba(33,150,243,0.5);
-        }
- 
-        #female {
-            background: #E91E63;
-            box-shadow: 0 2px 5px rgba(233,30,99,0.5);
-        }
- 
-        #diceResult {
-            font-size: 24px;
-            margin-left: 15px;
-            animation: diceRoll 0.5s;
-        }
- 
-        @keyframes diceRoll {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }}
     </style>
 </head>
 <body>
-    <div id="diceBox">
-        <span id="currentPlayer">当前玩家：♂</span>
-        <button onclick="rollDice()">掷骰子</button>
-        <span id="diceResult"></span>
-    </div>
-    
-    <div id="board"></div>
+    <!-- 保持原有DOM结构不变 -->
+ 
     <script>
-        let currentPlayer = 0; // 0:男 1:女 
-        let positions = [0, 0];
-        let promptData = {};
+        // 修改初始化逻辑 
+        function initBoard() {{
+            // 在棋盘创建后立即设置初始位置 
+            positions = [0, 0];  // 明确初始化坐标 
+            updatePosition();    // 初始定位调用 
+        }}
  
-        // 初始化棋盘 
-        function initBoard() {
-            const board = document.getElementById('board'); 
-            let cells = [];
-            
-            // 蛇形排列逻辑 
-            for(let i=0; i<80; i++){
-                const cell = document.createElement('div'); 
-                cell.className  = 'cell';
-                cell.id  = `cell${i}`;
-                cell.innerText  = i+1;
+        // 增强骰子功能 
+        function rollDice() {{
+            // 新增骰子点数提示 
+            setTimeout(() => {{
+                const result = parseInt(document.getElementById('diceResult').textContent); 
+                alert(`骰子点数：${{result}}`);
                 
-                // 计算坐标位置 
-                const row = Math.floor(i/10); 
-                const col = (row%2 === 0) ? i%10 : 9 - (i%10);
-                cell.style.left  = (col * 55) + 'px';
-                cell.style.top  = (row * 55) + 'px';
+                // 添加移动后的坐标提示 
+                setTimeout(() => {{
+                    const pos = positions[currentPlayer];
+                    if(pos > 0 && pos < 79) {{
+                        alert(`当前坐标：${{pos + 1}}`);
+                    }}
+                }}, 300);
+            }}, 600);
+        }}
+ 
+        // 优化移动逻辑 
+        function movePlayer(steps) {{
+            // 新增越界检测 
+            if(positions[currentPlayer] + steps > 79) {{
+                alert("超出终点！等待下次机会");
+                return;
+            }}
+            
+            // 强化提示系统 
+            const currentPos = positions[currentPlayer] += steps;
+            const prompt = promptData[currentPos];
+            
+            // 修改提示触发逻辑 
+            if(prompt) {{
+                setTimeout(() => {{
+                    alert(`触发事件：${{prompt}}`);
+                    document.getElementById(`cell${{currentPos}}`).style.background  = '#ffeb3b';
+                }}, 500);
+            }}
+        }}
+ 
+        // 优化位置更新算法 
+        function updatePosition() {{
+            const boardRect = document.getElementById('board').getBoundingClientRect(); 
+            
+            players.forEach((player,  index) => {{
+                const cell = document.getElementById(`cell${{positions[index]}}`); 
+                const cellRect = cell.getBoundingClientRect(); 
                 
-                board.appendChild(cell); 
-            }
-        }
- 
-        // 读取提示词文件 
-        async function loadPrompts() {
-            const response = await fetch('ciyu.txt'); 
-            const text = await response.text(); 
-            text.split('\n').forEach(line  => {
-                const [pos, msg] = line.split('-'); 
-                promptData[pos] = msg;
-            });
-        }
- 
-        // 骰子动画 
-        function rollDice() {
-            let count = 0;
-            const dice = document.getElementById('diceResult'); 
-            
-            const roll = setInterval(() => {
-                dice.textContent  = Math.floor(Math.random()*6)+1; 
-                if(count++ >= 10) {
-                    clearInterval(roll);
-                    const result = Math.floor(Math.random()*6)+1; 
-                    dice.textContent  = result;
-                    movePlayer(result);
-                }
-            }, 100);
-        }
- 
-        // 移动棋子 
-        function movePlayer(steps) {
-            positions[currentPlayer] += steps;
-            
-            // 检查提示词 
-            const prompt = promptData[positions[currentPlayer]];
-            if(prompt) alert(prompt);
-            
-            // 到达终点判断 
-            if(positions[currentPlayer] >= 79) {
-                alert(currentPlayer ? '♀ 玩家赢了！' : '♂ 玩家赢了！');
-                location.reload(); 
-            }
- 
-            updatePosition();
-            currentPlayer = currentPlayer ? 0 : 1;
-            document.getElementById('currentPlayer').textContent  = 
-                `当前玩家：${currentPlayer ? '♀' : '♂'}`;
-        }
- 
-        // 更新棋子位置 
-        function updatePosition() {
-            const players = document.querySelectorAll('.player'); 
-            players.forEach((player,  index) => {
-                const cell = document.getElementById(`cell${positions[index]}`); 
-                const rect = cell.getBoundingClientRect(); 
-                player.style.transform  = `translate(${rect.left}px,  ${rect.top}px)`; 
-            });
-        }
- 
-        // 初始化游戏 
-        (async function startGame() {
-            await loadPrompts();
-            initBoard();
-            
-            // 创建玩家棋子 
-            const board = document.getElementById('board'); 
-            const male = document.createElement('div'); 
-            male.id  = 'male';
-            male.className  = 'player';
-            male.textContent  = '♂';
-            
-            const female = document.createElement('div'); 
-            female.id  = 'female';
-            female.className  = 'player';
-            female.textContent  = '♀';
-            
-            board.append(male,  female);
-            updatePosition();
-        })();
+                // 精确计算定位 
+                player.style.left  = `${{cellRect.left  - boardRect.left  + 10}}px`;
+                player.style.top  = `${{cellRect.top  - boardRect.top  + 10}}px`;
+            }});
+        }}
     </script>
 </body>
 </html>
